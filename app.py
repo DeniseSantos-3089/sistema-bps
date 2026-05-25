@@ -39,17 +39,22 @@ else:
             0.80,0.85,0.88,0.90,0.92,0.94,0.95,0.96,0.97,0.98
         ]
     }
-
     df = pd.DataFrame(data)
 
 # =========================
-# VALIDAÇÃO (IMPORTANTE)
+# VALIDAÇÃO
 # =========================
 colunas_necessarias = ["Periodo", "Equipe", "Score"]
 
 if not all(col in df.columns for col in colunas_necessarias):
     st.error("O Excel precisa ter as colunas: Periodo, Equipe, Score")
     st.stop()
+
+# =========================
+# TABELA COMPLETA (NOVO)
+# =========================
+st.subheader("Tabela Completa dos Dados")
+st.dataframe(df)
 
 # =========================
 # FILTRO
@@ -62,6 +67,12 @@ equipe = st.sidebar.selectbox(
 )
 
 df_filtrado = df[df["Equipe"] == equipe]
+
+# =========================
+# TABELA FILTRADA (NOVO)
+# =========================
+st.subheader("Dados da Equipe Selecionada")
+st.dataframe(df_filtrado)
 
 # =========================
 # KPIs
@@ -101,7 +112,9 @@ y = df_filtrado["Score"]
 modelo = LinearRegression()
 modelo.fit(X, y)
 
-futuro = pd.DataFrame({"Periodo": list(range(max(df_filtrado["Periodo"])+1, max(df_filtrado["Periodo"])+5))})
+futuro = pd.DataFrame({
+    "Periodo": list(range(max(df_filtrado["Periodo"])+1, max(df_filtrado["Periodo"])+5))
+})
 previsao = modelo.predict(futuro)
 
 # =========================
@@ -135,7 +148,7 @@ fig2 = px.line(
 st.plotly_chart(fig2, use_container_width=True)
 
 # =========================
-# COMPARAÇÃO
+# COMPARAÇÃO GERAL
 # =========================
 st.subheader("Comparação Geral")
 
