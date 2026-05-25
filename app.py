@@ -162,7 +162,7 @@ ranking["Posição"] = range(1, len(ranking)+1)
 
 ranking = ranking[["Posição", "Equipe", "Score"]]
 
-st.dataframe(ranking.style.background_gradient(cmap="Blues"))
+st.dataframe(ranking)
 
 # =========================
 # ALERTA
