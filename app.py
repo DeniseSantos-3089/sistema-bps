@@ -4,7 +4,7 @@ import plotly.express as px
 
 st.set_page_config(page_title="Dashboard BPS", layout="wide")
 
-st.title("📊 Sistema BPS - Performance de Equipes")
+st.title("Sistema BPS - Performance de Equipes")
 
 # Criar dados simples
 data = {
@@ -23,7 +23,7 @@ fig = px.bar(df, x="Equipe", y="Score", color="Score")
 st.plotly_chart(fig)
 
 # Alertas
-st.subheader("🚨 Alertas")
+st.subheader("Alertas")
 
 alertas = df[df["Score"] < 0.7]
 
@@ -31,5 +31,5 @@ if not alertas.empty:
     st.error("Equipes com performance baixa:")
     st.write(alertas)
 else:
-    st.success("Tudo certo ✅")
+    st.success("Tudo certo")
 ``
