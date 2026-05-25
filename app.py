@@ -1,14 +1,29 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import numpy as np
 
-# CONFIGURAÇÃO
-st.set_page_config(page_title="Sistema BPS", layout="wide")
+# =============================
+# CONFIGURAÇÃO DA PÁGINA
+# =============================
+st.set_page_config(
+    page_title="Dashboard BPS",
+    layout="wide"
+)
 
-# TÍTULO
-st.title("Sistema de Performance BPS")
+# =============================
+# TÍTULO ESTILO EMPRESA
+# =============================
+st.markdown(
+    "<h1 style='text-align: center; color: #2E86C1;'>Dashboard de Performance BPS</h1>",
+    unsafe_allow_html=True
+)
 
-# DADOS COM HISTÓRICO (IMPORTANTE)
+st.markdown("---")
+
+# =============================
+# DADOS (COM HISTÓRICO)
+# =============================
 data = {
     "Periodo": [1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4],
     "Equipe": [
@@ -27,21 +42,36 @@ data = {
 
 df = pd.DataFrame(data)
 
-# ===================================
+# =============================
 # FILTRO
-# ===================================
+# =============================
 st.sidebar.header("Filtro")
 
 equipe = st.sidebar.selectbox(
-    "Escolhe a equipe:",
+    "Selecione a equipe:",
     df["Equipe"].unique()
 )
 
 df_filtrado = df[df["Equipe"] == equipe]
 
-# ===================================
-# GRÁFICO DE LINHA (Evolução)
-# ===================================
+# =============================
+# KPIs (NÍVEL EMPRESA)
+# =============================
+st.subheader("Indicadores")
+
+col1, col2, col3 = st.columns(3)
+
+media = df_filtrado["Score"].mean()
+maximo = df_filtrado["Score"].max()
+minimo = df_filtrado["Score"].min()
+
+col1.metric("Média", round(media,2))
+col2.metric("Melhor valor", round(maximo,2))
+col3.metric("Pior valor", round(minimo,2))
+
+# =============================
+# GRÁFICO EVOLUÇÃO
+# =============================
 st.subheader("Evolução da Equipe")
 
 fig1 = px.line(
@@ -51,12 +81,16 @@ fig1 = px.line(
     markers=True
 )
 
-st.plotly_chart(fig1)
+fig1.update_layout(
+    plot_bgcolor="white"
+)
 
-# ===================================
-# GRÁFICO DE COMPARAÇÃO
-# ===================================
-st.subheader("Comparação entre Equipes")
+st.plotly_chart(fig1, use_container_width=True)
+
+# =============================
+# COMPARAÇÃO ENTRE EQUIPES
+# =============================
+st.subheader("Comparação Geral")
 
 fig2 = px.line(
     df,
@@ -66,23 +100,34 @@ fig2 = px.line(
     markers=True
 )
 
-st.plotly_chart(fig2)
+st.plotly_chart(fig2, use_container_width=True)
 
-# ===================================
-# ANÁLISE
-# ===================================
-media = df.groupby("Equipe")["Score"].mean()
+# =============================
+# PREVISÃO COM IA
+# =============================
+st.subheader("Previsão de Tendência")
 
-melhor = media.idxmax()
-pior = media.idxmin()
+x = df_filtrado["Periodo"].values
+y = df_filtrado["Score"].values
 
-st.success(f"Melhor equipe: {melhor}")
-st.warning(f"Ponto de atenção: {pior}")
+coef = np.polyfit(x, y, 1)
+funcao = np.poly1d(coef)
 
-# ===================================
-# ALERTA
-# ===================================
-if media[pior] < 0.7:
-    st.error("Existe equipe com baixo desempenho")
+futuro = [5,6,7]
+previsao = funcao(futuro)
+
+for i, valor in enumerate(previsao):
+    st.write(f"Período {futuro[i]}: {round(valor,2)}")
+
+# =============================
+# ALERTA INTELIGENTE
+# =============================
+st.subheader("Alerta Inteligente")
+
+if previsao[-1] < media:
+    st.error("Tendência de queda")
+elif previsao[-1] > media:
+    st.success("Tendência de crescimento")
 else:
-    st.success("Tudo dentro do esperado")
+    st.warning("Tendência estável")
+
