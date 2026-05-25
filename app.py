@@ -39,6 +39,7 @@ else:
             0.80,0.85,0.88,0.90,0.92,0.94,0.95,0.96,0.97,0.98
         ]
     }
+
     df = pd.DataFrame(data)
 
 # =========================
@@ -47,14 +48,8 @@ else:
 colunas_necessarias = ["Periodo", "Equipe", "Score"]
 
 if not all(col in df.columns for col in colunas_necessarias):
-    st.error("O Excel precisa ter as colunas: Periodo, Equipe, Score")
+    st.error("O Excel precisa ter: Periodo, Equipe, Score")
     st.stop()
-
-# =========================
-# TABELA COMPLETA (NOVO)
-# =========================
-st.subheader("Tabela Completa dos Dados")
-st.dataframe(df)
 
 # =========================
 # FILTRO
@@ -67,12 +62,6 @@ equipe = st.sidebar.selectbox(
 )
 
 df_filtrado = df[df["Equipe"] == equipe]
-
-# =========================
-# TABELA FILTRADA (NOVO)
-# =========================
-st.subheader("Dados da Equipe Selecionada")
-st.dataframe(df_filtrado)
 
 # =========================
 # KPIs
@@ -90,7 +79,7 @@ col3.metric("Crescimento", round(crescimento,2))
 # =========================
 # GRÁFICO REAL
 # =========================
-st.subheader("Evolução Real")
+st.subheader("Evolução da Equipe")
 
 fig1 = px.line(
     df_filtrado,
@@ -115,6 +104,7 @@ modelo.fit(X, y)
 futuro = pd.DataFrame({
     "Periodo": list(range(max(df_filtrado["Periodo"])+1, max(df_filtrado["Periodo"])+5))
 })
+
 previsao = modelo.predict(futuro)
 
 # =========================
@@ -133,7 +123,7 @@ df_prev = pd.DataFrame({
 df_final = pd.concat([df_real, df_prev])
 
 # =========================
-# GRÁFICO FINAL
+# GRÁFICO PREVISÃO
 # =========================
 st.subheader("Real vs Previsão")
 
@@ -150,7 +140,7 @@ st.plotly_chart(fig2, use_container_width=True)
 # =========================
 # COMPARAÇÃO GERAL
 # =========================
-st.subheader("Comparação Geral")
+st.subheader("Comparação entre Equipes")
 
 fig3 = px.line(
     df,
@@ -160,6 +150,19 @@ fig3 = px.line(
 )
 
 st.plotly_chart(fig3, use_container_width=True)
+
+# =========================
+# RANKING (ÚNICA TABELA)
+# =========================
+st.subheader("Ranking de Performance")
+
+ranking = df.groupby("Equipe")["Score"].mean().reset_index()
+ranking = ranking.sort_values(by="Score", ascending=False)
+ranking["Posição"] = range(1, len(ranking)+1)
+
+ranking = ranking[["Posição", "Equipe", "Score"]]
+
+st.dataframe(ranking.style.background_gradient(cmap="Blues"))
 
 # =========================
 # ALERTA
@@ -172,5 +175,6 @@ elif previsao[-1] > media:
     st.success("Tendência de crescimento")
 else:
     st.warning("Estabilidade")
+
 
 
