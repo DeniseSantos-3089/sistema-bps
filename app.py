@@ -8,39 +8,81 @@ st.set_page_config(page_title="Sistema BPS", layout="wide")
 # TÍTULO
 st.title("Sistema de Performance BPS")
 
-# DADOS
+# DADOS COM HISTÓRICO (IMPORTANTE)
 data = {
-    "Equipe": ["Jurídico", "Telecom", "Fraude", "Suporte"],
-    "Score": [0.82, 0.75, 0.65, 0.88]
+    "Periodo": [1,2,3,4,1,2,3,4,1,2,3,4,1,2,3,4],
+    "Equipe": [
+        "Jurídico","Jurídico","Jurídico","Jurídico",
+        "Telecom","Telecom","Telecom","Telecom",
+        "Fraude","Fraude","Fraude","Fraude",
+        "Suporte","Suporte","Suporte","Suporte"
+    ],
+    "Score": [
+        0.78,0.80,0.82,0.83,
+        0.70,0.72,0.75,0.76,
+        0.72,0.68,0.65,0.60,
+        0.80,0.85,0.88,0.90
+    ]
 }
 
 df = pd.DataFrame(data)
 
-# TABELA
-st.subheader("Dados das Equipes")
-st.dataframe(df)
+# ===================================
+# FILTRO
+# ===================================
+st.sidebar.header("Filtro")
 
-# GRÁFICO
-st.subheader("Ranking de Equipes")
-
-fig = px.bar(
-    df,
-    x="Equipe",
-    y="Score",
-    color="Score"
+equipe = st.sidebar.selectbox(
+    "Escolhe a equipe:",
+    df["Equipe"].unique()
 )
 
-st.plotly_chart(fig)
+df_filtrado = df[df["Equipe"] == equipe]
 
+# ===================================
+# GRÁFICO DE LINHA (Evolução)
+# ===================================
+st.subheader("Evolução da Equipe")
+
+fig1 = px.line(
+    df_filtrado,
+    x="Periodo",
+    y="Score",
+    markers=True
+)
+
+st.plotly_chart(fig1)
+
+# ===================================
+# GRÁFICO DE COMPARAÇÃO
+# ===================================
+st.subheader("Comparação entre Equipes")
+
+fig2 = px.line(
+    df,
+    x="Periodo",
+    y="Score",
+    color="Equipe",
+    markers=True
+)
+
+st.plotly_chart(fig2)
+
+# ===================================
 # ANÁLISE
-melhor = df.loc[df["Score"].idxmax()]
-pior = df.loc[df["Score"].idxmin()]
+# ===================================
+media = df.groupby("Equipe")["Score"].mean()
 
-st.success("Melhor equipe: " + melhor["Equipe"] + " (" + str(melhor["Score"]) + ")")
-st.warning("Ponto de atenção: " + pior["Equipe"] + " (" + str(pior["Score"]) + ")")
+melhor = media.idxmax()
+pior = media.idxmin()
 
+st.success(f"Melhor equipe: {melhor}")
+st.warning(f"Ponto de atenção: {pior}")
+
+# ===================================
 # ALERTA
-if pior["Score"] < 0.7:
+# ===================================
+if media[pior] < 0.7:
     st.error("Existe equipe com baixo desempenho")
 else:
-    st.success("Todas equipes estão dentro do esperado")
+    st.success("Tudo dentro do esperado")
