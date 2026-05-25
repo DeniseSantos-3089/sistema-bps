@@ -4,12 +4,12 @@ import plotly.express as px
 from sklearn.linear_model import LinearRegression
 
 # =========================
-# CONFIGURAÇÃO
+# CONFIG
 # =========================
 st.set_page_config(page_title="Painel Executivo BPS", layout="wide")
 
 # =========================
-# HEADER
+# HEADER DIRETOR
 # =========================
 st.markdown("""
 <div style='background-color:#0B1F3A;padding:20px;border-radius:10px'>
@@ -39,45 +39,36 @@ df = pd.DataFrame(data)
 # FILTRO
 # =========================
 st.sidebar.title("Filtros")
-
-equipe = st.sidebar.selectbox(
-    "Selecione a equipe:",
-    df["Equipe"].unique()
-)
-
+equipe = st.sidebar.selectbox("Equipe", df["Equipe"].unique())
 df_filtrado = df[df["Equipe"] == equipe]
 
 # =========================
-# KPIs
+# KPIs DIRETORIA
 # =========================
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 
 media = df_filtrado["Score"].mean()
 atual = df_filtrado["Score"].iloc[-1]
 crescimento = atual - df_filtrado["Score"].iloc[0]
+tendencia = "Alta" if crescimento > 0 else "Queda"
 
 col1.metric("Média", round(media,2))
 col2.metric("Atual", round(atual,2))
 col3.metric("Crescimento", round(crescimento,2))
+col4.metric("Tendência", tendencia)
 
 # =========================
-# GRÁFICO REAL
+# GRÁFICO PRINCIPAL
 # =========================
-st.subheader("Evolução Real da Equipe")
+st.markdown("### Evolução")
 
-fig1 = px.line(
-    df_filtrado,
-    x="Periodo",
-    y="Score",
-    markers=True
-)
-
+fig1 = px.line(df_filtrado, x="Periodo", y="Score", markers=True)
 st.plotly_chart(fig1, use_container_width=True)
 
 # =========================
 # IA (Machine Learning)
 # =========================
-st.subheader("Previsão com IA")
+st.markdown("### Previsão com IA")
 
 X = df_filtrado[["Periodo"]]
 y = df_filtrado["Score"]
@@ -89,7 +80,7 @@ futuro = pd.DataFrame({"Periodo":[11,12,13,14]})
 previsao = modelo.predict(futuro)
 
 # =========================
-# JUNÇÃO REAL + PREVISÃO
+# GRÁFICO REAL vs PREVISÃO
 # =========================
 df_real = df_filtrado.copy()
 df_real["Tipo"] = "Real"
@@ -103,11 +94,6 @@ df_prev = pd.DataFrame({
 
 df_final = pd.concat([df_real, df_prev])
 
-# =========================
-# GRÁFICO PREVISÃO
-# =========================
-st.subheader("Real vs Previsão")
-
 fig2 = px.line(
     df_final,
     x="Periodo",
@@ -119,28 +105,23 @@ fig2 = px.line(
 st.plotly_chart(fig2, use_container_width=True)
 
 # =========================
-# COMPARAÇÃO GERAL
+# RANKING DAS EQUIPES
 # =========================
-st.subheader("Comparação entre Equipes")
+st.markdown("### Ranking das Equipes")
 
-fig3 = px.line(
-    df,
-    x="Periodo",
-    y="Score",
-    color="Equipe"
-)
-
-st.plotly_chart(fig3, use_container_width=True)
+ranking = df.groupby("Equipe")["Score"].mean().sort_values(ascending=False)
+st.dataframe(ranking)
 
 # =========================
-# ALERTA
+# ALERTA ESTRATÉGICO
 # =========================
-st.subheader("Análise Inteligente")
+st.markdown("### Insights Executivos")
 
 if previsao[-1] < media:
-    st.error("Risco de queda de performance")
+    st.error("Queda prevista - intervenção necessária")
 elif previsao[-1] > media:
-    st.success("Tendência de crescimento")
+    st.success("Crescimento sustentável identificado")
 else:
-    st.warning("Estabilidade")
+    st.warning("Estabilidade - manter estratégia atual")
+
 
