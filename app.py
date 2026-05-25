@@ -9,9 +9,15 @@ from sklearn.linear_model import LinearRegression
 st.set_page_config(page_title="Painel Executivo BPS", layout="wide")
 
 # =========================
-# TÍTULO
+# HEADER
 # =========================
-st.title("Painel Executivo de Performance BPS")
+st.markdown("""
+<div style='background-color:#0B1F3A;padding:20px;border-radius:10px'>
+<h1 style='color:white;text-align:center;'>Painel Executivo BPS</h1>
+</div>
+""", unsafe_allow_html=True)
+
+st.write("")
 
 # =========================
 # DADOS
@@ -55,9 +61,9 @@ col2.metric("Atual", round(atual,2))
 col3.metric("Crescimento", round(crescimento,2))
 
 # =========================
-# GRÁFICO DE LINHA
+# GRÁFICO REAL
 # =========================
-st.subheader("Evolução da Equipe")
+st.subheader("Evolução Real da Equipe")
 
 fig1 = px.line(
     df_filtrado,
@@ -69,24 +75,9 @@ fig1 = px.line(
 st.plotly_chart(fig1, use_container_width=True)
 
 # =========================
-# COMPARAÇÃO ENTRE EQUIPES
+# IA (Machine Learning)
 # =========================
-st.subheader("Comparação Geral")
-
-fig2 = px.line(
-    df,
-    x="Periodo",
-    y="Score",
-    color="Equipe",
-    markers=True
-)
-
-st.plotly_chart(fig2, use_container_width=True)
-
-# =========================
-# IA REAL (Machine Learning)
-# =========================
-st.subheader("Previsão com Inteligência Artificial")
+st.subheader("Previsão com IA")
 
 X = df_filtrado[["Periodo"]]
 y = df_filtrado["Score"]
@@ -97,34 +88,54 @@ modelo.fit(X, y)
 futuro = pd.DataFrame({"Periodo":[11,12,13,14]})
 previsao = modelo.predict(futuro)
 
-for i in range(len(futuro)):
-    st.write(f"Período {futuro.iloc[i,0]}: {round(previsao[i],2)}")
+# =========================
+# JUNÇÃO REAL + PREVISÃO
+# =========================
+df_real = df_filtrado.copy()
+df_real["Tipo"] = "Real"
+
+df_prev = pd.DataFrame({
+    "Periodo": futuro["Periodo"],
+    "Score": previsao,
+    "Equipe": equipe,
+    "Tipo": "Previsto"
+})
+
+df_final = pd.concat([df_real, df_prev])
 
 # =========================
 # GRÁFICO PREVISÃO
 # =========================
-df_previsao = pd.concat([
-    df_filtrado,
-    pd.DataFrame({
-        "Periodo": futuro["Periodo"],
-        "Score": previsao,
-        "Equipe": equipe
-    })
-])
+st.subheader("Real vs Previsão")
 
-fig3 = px.line(
-    df_previsao,
+fig2 = px.line(
+    df_final,
     x="Periodo",
     y="Score",
+    color="Tipo",
     markers=True
+)
+
+st.plotly_chart(fig2, use_container_width=True)
+
+# =========================
+# COMPARAÇÃO GERAL
+# =========================
+st.subheader("Comparação entre Equipes")
+
+fig3 = px.line(
+    df,
+    x="Periodo",
+    y="Score",
+    color="Equipe"
 )
 
 st.plotly_chart(fig3, use_container_width=True)
 
 # =========================
-# ALERTA INTELIGENTE
+# ALERTA
 # =========================
-st.subheader("Análise")
+st.subheader("Análise Inteligente")
 
 if previsao[-1] < media:
     st.error("Risco de queda de performance")
@@ -132,3 +143,4 @@ elif previsao[-1] > media:
     st.success("Tendência de crescimento")
 else:
     st.warning("Estabilidade")
+
