@@ -75,7 +75,7 @@ df_filtrado = df[df["Equipe"] == equipe]
 # =========================
 # KPI - PERFORMANCE
 # =========================
-st.markdown("### 📊 Performance")
+st.markdown("### Performance")
 
 media = df_filtrado["Score"].mean()
 atual = df_filtrado["Score"].iloc[-1]
