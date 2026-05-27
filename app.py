@@ -40,15 +40,8 @@ else:
             0.85,0.88,0.90,0.92,0.94,0.95,0.96,0.97,0.98,0.99
         ],
 
-        "Realizado": [
-            80,82,83,84,85,86,87,88,89,90,
-            70,72,75,76,77,78,79,80,81,82,
-            72,68,65,60,58,55,53,52,50,48,
-            80,85,88,90,92,94,95,96,97,98
-        ],
-
-        "Meta": [
-            100]*40
+        "Realizado": [80]*40,
+        "Meta": [100]*40
     }
 
     df = pd.DataFrame(data)
@@ -62,15 +55,13 @@ if not all(col in df.columns for col in colunas_necessarias):
     st.error("O Excel precisa ter: Periodo, Equipe, Qualidade, Realizado, Meta")
     st.stop()
 
-# =========================
-# TRATAMENTO DE ERRO DE META
-# =========================
+# erro de meta
 if (df["Meta"] == 0).any():
-    st.error("Existem metas iguais a 0. Corrija o Excel.")
+    st.error("Existem metas iguais a 0 no arquivo.")
     st.stop()
 
 # =========================
-# CÁLCULO AUTOMÁTICO
+# CÁLCULOS
 # =========================
 df["Volumetria"] = df["Realizado"] / df["Meta"]
 df["Score"] = (df["Qualidade"] + df["Volumetria"]) / 2
@@ -79,10 +70,10 @@ df["Score"] = (df["Qualidade"] + df["Volumetria"]) / 2
 # EXPLICAÇÃO
 # =========================
 st.info("""
-O Score é calculado automaticamente com base em:
+Score calculado automaticamente:
 
-- Qualidade (precisão)
-- Volumetria (Realizado / Meta)
+Qualidade = precisão  
+Volumetria = Realizado / Meta  
 
 Score = (Qualidade + Volumetria) / 2
 """)
@@ -91,12 +82,12 @@ Score = (Qualidade + Volumetria) / 2
 # FILTRO
 # =========================
 st.sidebar.title("Filtros")
-
 equipe = st.sidebar.selectbox("Equipe", df["Equipe"].unique())
+
 df_filtrado = df[df["Equipe"] == equipe]
 
 # =========================
-# KPI
+# KPIs
 # =========================
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 
@@ -114,7 +105,7 @@ col2.metric("Atual", round(atual,2))
 col3.metric("Crescimento", round(crescimento,2))
 col4.metric("Qualidade", round(qualidade_media,2))
 col5.metric("Volumetria", round(volumetria_media,2))
-col6.metric("Atingiu Meta", atingiu_meta)
+col6.metric("Meta", atingiu_meta)
 
 # =========================
 # GRÁFICOS
@@ -126,8 +117,8 @@ st.plotly_chart(fig1, use_container_width=True)
 
 st.subheader("Qualidade vs Volumetria")
 
-fig_qv = px.line(df_filtrado, x="Periodo", y=["Qualidade", "Volumetria"], markers=True)
-st.plotly_chart(fig_qv, use_container_width=True)
+fig2 = px.line(df_filtrado, x="Periodo", y=["Qualidade","Volumetria"], markers=True)
+st.plotly_chart(fig2, use_container_width=True)
 
 # =========================
 # IA
@@ -138,8 +129,14 @@ y = df_filtrado["Score"]
 modelo = LinearRegression()
 modelo.fit(X, y)
 
-futuro = pd.DataFrame({"Periodo": list(range(max(df_filtrado["Periodo"])+1, max(df_filtrado["Periodo"])+5))})
+futuro = pd.DataFrame({
+    "Periodo": list(range(max(df_filtrado["Periodo"])+1, max(df_filtrado["Periodo"])+5))
+})
+
 previsao = modelo.predict(futuro)
+
+df_real = df_filtrado.copy()
+df_real["Tipo"] = "Real"
 
 df_prev = pd.DataFrame({
     "Periodo": futuro["Periodo"],
@@ -147,15 +144,12 @@ df_prev = pd.DataFrame({
     "Tipo": "Previsto"
 })
 
-df_real = df_filtrado.copy()
-df_real["Tipo"] = "Real"
-
 df_final = pd.concat([df_real, df_prev])
 
 st.subheader("Previsão")
 
-fig2 = px.line(df_final, x="Periodo", y="Score", color="Tipo", markers=True)
-st.plotly_chart(fig2, use_container_width=True)
+fig3 = px.line(df_final, x="Periodo", y="Score", color="Tipo", markers=True)
+st.plotly_chart(fig3, use_container_width=True)
 
 # =========================
 # RANKING
@@ -164,7 +158,7 @@ ranking = df.groupby("Equipe")["Score"].mean().reset_index()
 ranking = ranking.sort_values(by="Score", ascending=False)
 
 st.subheader("Ranking")
-st.dataframe(ranking)
+st.dataframe(ranking, use_container_width=True)
 
 # =========================
 # OFENSOR
@@ -177,6 +171,31 @@ elif volumetria_media < qualidade_media:
     st.warning("Ofensor: Volumetria")
 else:
     st.success("Equilíbrio")
+
+# =========================
+# INSIGHTS
+# =========================
+st.subheader("Insights Estratégicos")
+
+ultimo_score = df_filtrado["Score"].iloc[-1]
+
+if previsao[-1] > ultimo_score:
+    st.success("Tendência de crescimento")
+elif previsao[-1] < ultimo_score:
+    st.error("Tendência de queda")
+else:
+    st.warning("Estabilidade")
+
+if df_filtrado["Volumetria"].iloc[-1] >= 1:
+    st.success("Meta atingida")
+else:
+    st.warning("Meta não atingida")
+
+if crescimento > 0:
+    st.success("Evolução positiva")
+else:
+    st.error("Queda de performance")
+
 
 
 
