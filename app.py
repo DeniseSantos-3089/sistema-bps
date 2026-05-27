@@ -4,7 +4,7 @@ import plotly.express as px
 from sklearn.linear_model import LinearRegression
 
 # =========================
-# CONFIG
+# CONFIGURAÇÃO
 # =========================
 st.set_page_config(page_title="Painel Executivo BPS", layout="wide")
 
@@ -20,7 +20,7 @@ st.markdown("""
 st.write("")
 
 # =========================
-# UPLOAD
+# UPLOAD DE EXCEL
 # =========================
 arquivo = st.file_uploader("Carregue seu Excel", type=["xlsx"])
 
@@ -49,28 +49,27 @@ else:
 # =========================
 # VALIDAÇÃO
 # =========================
-colunas_necessarias = ["Periodo", "Equipe", "Qualidade", "Realizado", "Meta"]
+colunas = ["Periodo", "Equipe", "Qualidade", "Realizado", "Meta"]
 
-if not all(col in df.columns for col in colunas_necessarias):
+if not all(col in df.columns for col in colunas):
     st.error("O Excel precisa ter: Periodo, Equipe, Qualidade, Realizado, Meta")
     st.stop()
 
-# erro de meta
 if (df["Meta"] == 0).any():
-    st.error("Existem metas iguais a 0 no arquivo.")
+    st.error("Existe meta igual a 0 no arquivo")
     st.stop()
 
 # =========================
-# CÁLCULOS
+# CÁLCULOS AUTOMÁTICOS
 # =========================
 df["Volumetria"] = df["Realizado"] / df["Meta"]
 df["Score"] = (df["Qualidade"] + df["Volumetria"]) / 2
 
 # =========================
-# EXPLICAÇÃO
+# EXPLICAÇÃO DO SCORE
 # =========================
 st.info("""
-Score calculado automaticamente:
+Score automático:
 
 Qualidade = precisão  
 Volumetria = Realizado / Meta  
@@ -82,8 +81,8 @@ Score = (Qualidade + Volumetria) / 2
 # FILTRO
 # =========================
 st.sidebar.title("Filtros")
-equipe = st.sidebar.selectbox("Equipe", df["Equipe"].unique())
 
+equipe = st.sidebar.selectbox("Equipe:", df["Equipe"].unique())
 df_filtrado = df[df["Equipe"] == equipe]
 
 # =========================
@@ -121,7 +120,7 @@ fig2 = px.line(df_filtrado, x="Periodo", y=["Qualidade","Volumetria"], markers=T
 st.plotly_chart(fig2, use_container_width=True)
 
 # =========================
-# IA
+# IA (PREVISÃO)
 # =========================
 X = df_filtrado[["Periodo"]]
 y = df_filtrado["Score"]
@@ -195,6 +194,7 @@ if crescimento > 0:
     st.success("Evolução positiva")
 else:
     st.error("Queda de performance")
+
 
 
 
