@@ -32,11 +32,26 @@ else:
     data = {
         "Periodo": list(range(1,11))*4,
         "Equipe": ["Jurídico"]*10 + ["Telecom"]*10 + ["Fraude"]*10 + ["Suporte"]*10,
+
         "Score": [
             0.78,0.80,0.82,0.83,0.84,0.85,0.86,0.87,0.88,0.89,
             0.70,0.72,0.75,0.76,0.77,0.78,0.79,0.80,0.81,0.82,
             0.72,0.68,0.65,0.60,0.58,0.55,0.53,0.52,0.50,0.48,
             0.80,0.85,0.88,0.90,0.92,0.94,0.95,0.96,0.97,0.98
+        ],
+
+        "Qualidade": [
+            0.80,0.82,0.83,0.84,0.85,0.86,0.87,0.88,0.89,0.90,
+            0.72,0.74,0.76,0.78,0.79,0.80,0.81,0.82,0.83,0.84,
+            0.68,0.65,0.62,0.60,0.58,0.56,0.54,0.52,0.50,0.48,
+            0.85,0.88,0.90,0.92,0.94,0.95,0.96,0.97,0.98,0.99
+        ],
+
+        "Volumetria": [
+            0.76,0.78,0.80,0.82,0.83,0.84,0.85,0.86,0.87,0.88,
+            0.68,0.70,0.72,0.74,0.75,0.76,0.77,0.78,0.79,0.80,
+            0.70,0.66,0.63,0.60,0.58,0.56,0.54,0.53,0.51,0.50,
+            0.78,0.82,0.85,0.88,0.90,0.92,0.94,0.95,0.96,0.97
         ]
     }
 
@@ -45,10 +60,10 @@ else:
 # =========================
 # VALIDAÇÃO
 # =========================
-colunas_necessarias = ["Periodo", "Equipe", "Score"]
+colunas_necessarias = ["Periodo", "Equipe", "Score", "Qualidade", "Volumetria"]
 
 if not all(col in df.columns for col in colunas_necessarias):
-    st.error("O Excel precisa ter: Periodo, Equipe, Score")
+    st.error("O Excel precisa ter: Periodo, Equipe, Score, Qualidade, Volumetria")
     st.stop()
 
 # =========================
@@ -66,29 +81,42 @@ df_filtrado = df[df["Equipe"] == equipe]
 # =========================
 # KPIs
 # =========================
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4, col5 = st.columns(5)
 
 media = df_filtrado["Score"].mean()
 atual = df_filtrado["Score"].iloc[-1]
 crescimento = atual - df_filtrado["Score"].iloc[0]
 
+qualidade_media = df_filtrado["Qualidade"].mean()
+volumetria_media = df_filtrado["Volumetria"].mean()
+
 col1.metric("Média", round(media,2))
 col2.metric("Atual", round(atual,2))
 col3.metric("Crescimento", round(crescimento,2))
+col4.metric("Qualidade", round(qualidade_media,2))
+col5.metric("Volumetria", round(volumetria_media,2))
 
 # =========================
 # GRÁFICO REAL
 # =========================
 st.subheader("Evolução da Equipe")
 
-fig1 = px.line(
+fig1 = px.line(df_filtrado, x="Periodo", y="Score", markers=True)
+st.plotly_chart(fig1, use_container_width=True)
+
+# =========================
+# QUALIDADE vs VOLUMETRIA
+# =========================
+st.subheader("Qualidade vs Volumetria")
+
+fig_qv = px.line(
     df_filtrado,
     x="Periodo",
-    y="Score",
+    y=["Qualidade", "Volumetria"],
     markers=True
 )
 
-st.plotly_chart(fig1, use_container_width=True)
+st.plotly_chart(fig_qv, use_container_width=True)
 
 # =========================
 # IA (Machine Learning)
@@ -127,14 +155,7 @@ df_final = pd.concat([df_real, df_prev])
 # =========================
 st.subheader("Real vs Previsão")
 
-fig2 = px.line(
-    df_final,
-    x="Periodo",
-    y="Score",
-    color="Tipo",
-    markers=True
-)
-
+fig2 = px.line(df_final, x="Periodo", y="Score", color="Tipo", markers=True)
 st.plotly_chart(fig2, use_container_width=True)
 
 # =========================
@@ -142,17 +163,11 @@ st.plotly_chart(fig2, use_container_width=True)
 # =========================
 st.subheader("Comparação entre Equipes")
 
-fig3 = px.line(
-    df,
-    x="Periodo",
-    y="Score",
-    color="Equipe"
-)
-
+fig3 = px.line(df, x="Periodo", y="Score", color="Equipe")
 st.plotly_chart(fig3, use_container_width=True)
 
 # =========================
-# RANKING (ÚNICA TABELA)
+# RANKING (ÚNICO)
 # =========================
 st.subheader("Ranking de Performance")
 
@@ -162,7 +177,19 @@ ranking["Posição"] = range(1, len(ranking)+1)
 
 ranking = ranking[["Posição", "Equipe", "Score"]]
 
-st.dataframe(ranking)
+st.dataframe(ranking, use_container_width=True)
+
+# =========================
+# OFENSOR
+# =========================
+st.subheader("Análise de Ofensor")
+
+if qualidade_media < volumetria_media:
+    st.error("Principal ofensor: QUALIDADE")
+elif volumetria_media < qualidade_media:
+    st.warning("Principal ofensor: VOLUMETRIA")
+else:
+    st.success("Equilíbrio entre qualidade e volumetria")
 
 # =========================
 # ALERTA
@@ -175,6 +202,3 @@ elif previsao[-1] > media:
     st.success("Tendência de crescimento")
 else:
     st.warning("Estabilidade")
-
-
-
