@@ -4,7 +4,7 @@ import plotly.express as px
 from sklearn.linear_model import LinearRegression
 
 # =========================
-# CONFIG
+# CONFIGURAÇÃO
 # =========================
 st.set_page_config(page_title="Painel Executivo BPS", layout="wide")
 
@@ -41,6 +41,7 @@ else:
 # VALIDAÇÃO
 # =========================
 colunas = ["Periodo","Equipe","Qualidade","Realizado","Meta"]
+
 if not all(col in df.columns for col in colunas):
     st.error("Excel precisa conter: Periodo, Equipe, Qualidade, Realizado, Meta")
     st.stop()
@@ -50,7 +51,7 @@ if (df["Meta"] == 0).any():
     st.stop()
 
 # =========================
-# CÁLCULOS
+# CÁLCULO AUTOMÁTICO
 # =========================
 df["Volumetria"] = df["Realizado"] / df["Meta"]
 df["Score"] = (df["Qualidade"] + df["Volumetria"]) / 2
@@ -60,6 +61,7 @@ df["Score"] = (df["Qualidade"] + df["Volumetria"]) / 2
 # =========================
 st.info("""
 Score automático:
+
 Qualidade = precisão  
 Volumetria = Realizado / Meta  
 Score = (Qualidade + Volumetria) / 2
@@ -70,10 +72,11 @@ Score = (Qualidade + Volumetria) / 2
 # =========================
 st.sidebar.title("Filtros")
 equipe = st.sidebar.selectbox("Equipe", df["Equipe"].unique())
+
 df_filtrado = df[df["Equipe"] == equipe]
 
 # =========================
-# KPI - PERFORMANCE
+# KPIs - PERFORMANCE
 # =========================
 st.markdown("### Performance")
 
@@ -88,9 +91,9 @@ col2.metric("Atual", round(atual,2))
 col3.metric("Crescimento", round(crescimento,2))
 
 # =========================
-# KPI - OPERAÇÃO
+# KPIs - OPERAÇÃO
 # =========================
-st.markdown("### ⚙️ Operação")
+st.markdown("### Operação")
 
 qualidade_media = df_filtrado["Qualidade"].mean()
 volumetria_media = df_filtrado["Volumetria"].mean()
@@ -104,9 +107,9 @@ col5.metric("Volumetria", round(volumetria_media,2))
 col6.metric("Meta", atingiu_meta)
 
 # =========================
-# KPI - METAS
+# KPIs - METAS
 # =========================
-st.markdown("### 🎯 Metas")
+st.markdown("### Metas")
 
 meta_score = 1
 meta_qualidade = 0.90
@@ -119,20 +122,23 @@ col8.metric("Meta Qualidade", meta_qualidade)
 col9.metric("Meta Volumetria", meta_volumetria)
 
 # =========================
-# GRÁFICOS
+# GRÁFICO - EVOLUÇÃO
 # =========================
 st.subheader("Evolução")
 
 fig1 = px.line(df_filtrado, x="Periodo", y="Score", markers=True)
 st.plotly_chart(fig1, use_container_width=True)
 
+# =========================
+# QUALIDADE vs VOLUMETRIA
+# =========================
 st.subheader("Qualidade vs Volumetria")
 
 fig2 = px.line(df_filtrado, x="Periodo", y=["Qualidade","Volumetria"], markers=True)
 st.plotly_chart(fig2, use_container_width=True)
 
 # =========================
-# IA
+# IA - PREVISÃO (CORRIGIDO)
 # =========================
 X = df_filtrado[["Periodo"]]
 y = df_filtrado["Score"]
@@ -141,22 +147,27 @@ modelo = LinearRegression()
 modelo.fit(X, y)
 
 futuro = pd.DataFrame({
-    "Periodo": list(range(max(df_filtrado["Periodo"])+1, max(df_filtrado["Periodo"])+5))
+    "Periodo": list(range(max(df_filtrado["Periodo"]) + 1,
+                             max(df_filtrado["Periodo"]) + 5))
 })
 
 previsao = modelo.predict(futuro)
 
+# corrigido 
 df_real = df_filtrado.copy()
 df_real["Tipo"] = "Real"
 
 df_prev = pd.DataFrame({
     "Periodo": futuro["Periodo"],
-    "Score": previsao,
-    "Tipo": "Previsto"
+    "Score": previsao
 })
+
+df_prev["Tipo"] = "Previsto"
+df_prev["Equipe"] = equipe
 
 df_final = pd.concat([df_real, df_prev])
 
+# gráfico previsão
 st.subheader("Previsão")
 
 fig3 = px.line(df_final, x="Periodo", y="Score", color="Tipo", markers=True)
@@ -206,6 +217,7 @@ if crescimento > 0:
     st.success("Evolução positiva")
 else:
     st.error("Queda de performance")
+
 
 
 
