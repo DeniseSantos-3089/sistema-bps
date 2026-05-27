@@ -67,6 +67,18 @@ if not all(col in df.columns for col in colunas_necessarias):
     st.stop()
 
 # =========================
+# EXPLICAÇÃO DO SCORE
+# =========================
+st.info("""
+O Score é calculado com base em dois fatores principais:
+
+- Qualidade: nível de assertividade das entregas
+- Volumetria: volume realizado em relação ao esperado
+
+Essa combinação permite uma visão completa da performance.
+""")
+
+# =========================
 # FILTRO
 # =========================
 st.sidebar.title("Filtros")
@@ -167,7 +179,7 @@ fig3 = px.line(df, x="Periodo", y="Score", color="Equipe")
 st.plotly_chart(fig3, use_container_width=True)
 
 # =========================
-# RANKING (ÚNICO)
+# RANKING
 # =========================
 st.subheader("Ranking de Performance")
 
@@ -192,7 +204,7 @@ else:
     st.success("Equilíbrio entre qualidade e volumetria")
 
 # =========================
-# ALERTA
+# INSIGHTS
 # =========================
 st.subheader("Insights")
 
@@ -202,3 +214,4 @@ elif previsao[-1] > media:
     st.success("Tendência de crescimento")
 else:
     st.warning("Estabilidade")
+
