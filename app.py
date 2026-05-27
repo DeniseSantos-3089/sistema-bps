@@ -4,7 +4,7 @@ import plotly.express as px
 from sklearn.linear_model import LinearRegression
 
 # =========================
-# CONFIGURAÇÃO
+# CONFIG
 # =========================
 st.set_page_config(page_title="Painel Executivo BPS", layout="wide")
 
@@ -20,7 +20,7 @@ st.markdown("""
 st.write("")
 
 # =========================
-# UPLOAD DE EXCEL
+# UPLOAD
 # =========================
 arquivo = st.file_uploader("Carregue seu Excel", type=["xlsx"])
 
@@ -40,12 +40,15 @@ else:
             0.85,0.88,0.90,0.92,0.94,0.95,0.96,0.97,0.98,0.99
         ],
 
-        "Volumetria": [
-            0.76,0.78,0.80,0.82,0.83,0.84,0.85,0.86,0.87,0.88,
-            0.68,0.70,0.72,0.74,0.75,0.76,0.77,0.78,0.79,0.80,
-            0.70,0.66,0.63,0.60,0.58,0.56,0.54,0.53,0.51,0.50,
-            0.78,0.82,0.85,0.88,0.90,0.92,0.94,0.95,0.96,0.97
-        ]
+        "Realizado": [
+            80,82,83,84,85,86,87,88,89,90,
+            70,72,75,76,77,78,79,80,81,82,
+            72,68,65,60,58,55,53,52,50,48,
+            80,85,88,90,92,94,95,96,97,98
+        ],
+
+        "Meta": [
+            100]*40
     }
 
     df = pd.DataFrame(data)
@@ -53,25 +56,33 @@ else:
 # =========================
 # VALIDAÇÃO
 # =========================
-colunas_necessarias = ["Periodo", "Equipe", "Qualidade", "Volumetria"]
+colunas_necessarias = ["Periodo", "Equipe", "Qualidade", "Realizado", "Meta"]
 
 if not all(col in df.columns for col in colunas_necessarias):
-    st.error("O Excel precisa ter: Periodo, Equipe, Qualidade, Volumetria")
+    st.error("O Excel precisa ter: Periodo, Equipe, Qualidade, Realizado, Meta")
     st.stop()
 
 # =========================
-# CÁLCULO AUTOMÁTICO DO SCORE
+# TRATAMENTO DE ERRO DE META
 # =========================
+if (df["Meta"] == 0).any():
+    st.error("Existem metas iguais a 0. Corrija o Excel.")
+    st.stop()
+
+# =========================
+# CÁLCULO AUTOMÁTICO
+# =========================
+df["Volumetria"] = df["Realizado"] / df["Meta"]
 df["Score"] = (df["Qualidade"] + df["Volumetria"]) / 2
 
 # =========================
-# EXPLICAÇÃO DO SCORE
+# EXPLICAÇÃO
 # =========================
 st.info("""
-O Score é calculado automaticamente com base em dois fatores:
+O Score é calculado automaticamente com base em:
 
-- Qualidade: nível de assertividade
-- Volumetria: volume entregue
+- Qualidade (precisão)
+- Volumetria (Realizado / Meta)
 
 Score = (Qualidade + Volumetria) / 2
 """)
@@ -81,17 +92,13 @@ Score = (Qualidade + Volumetria) / 2
 # =========================
 st.sidebar.title("Filtros")
 
-equipe = st.sidebar.selectbox(
-    "Selecione a equipe:",
-    df["Equipe"].unique()
-)
-
+equipe = st.sidebar.selectbox("Equipe", df["Equipe"].unique())
 df_filtrado = df[df["Equipe"] == equipe]
 
 # =========================
-# KPIs
+# KPI
 # =========================
-col1, col2, col3, col4, col5 = st.columns(5)
+col1, col2, col3, col4, col5, col6 = st.columns(6)
 
 media = df_filtrado["Score"].mean()
 atual = df_filtrado["Score"].iloc[-1]
@@ -100,117 +107,76 @@ crescimento = atual - df_filtrado["Score"].iloc[0]
 qualidade_media = df_filtrado["Qualidade"].mean()
 volumetria_media = df_filtrado["Volumetria"].mean()
 
+atingiu_meta = "✅" if df_filtrado["Volumetria"].iloc[-1] >= 1 else "❌"
+
 col1.metric("Média", round(media,2))
 col2.metric("Atual", round(atual,2))
 col3.metric("Crescimento", round(crescimento,2))
 col4.metric("Qualidade", round(qualidade_media,2))
 col5.metric("Volumetria", round(volumetria_media,2))
+col6.metric("Atingiu Meta", atingiu_meta)
 
 # =========================
-# GRÁFICO REAL
+# GRÁFICOS
 # =========================
-st.subheader("Evolução da Equipe")
+st.subheader("Evolução")
 
 fig1 = px.line(df_filtrado, x="Periodo", y="Score", markers=True)
 st.plotly_chart(fig1, use_container_width=True)
 
-# =========================
-# QUALIDADE vs VOLUMETRIA
-# =========================
 st.subheader("Qualidade vs Volumetria")
 
-fig_qv = px.line(
-    df_filtrado,
-    x="Periodo",
-    y=["Qualidade", "Volumetria"],
-    markers=True
-)
-
+fig_qv = px.line(df_filtrado, x="Periodo", y=["Qualidade", "Volumetria"], markers=True)
 st.plotly_chart(fig_qv, use_container_width=True)
 
 # =========================
-# IA (Machine Learning)
+# IA
 # =========================
-st.subheader("Previsão com IA")
-
 X = df_filtrado[["Periodo"]]
 y = df_filtrado["Score"]
 
 modelo = LinearRegression()
 modelo.fit(X, y)
 
-futuro = pd.DataFrame({
-    "Periodo": list(range(max(df_filtrado["Periodo"])+1, max(df_filtrado["Periodo"])+5))
-})
-
+futuro = pd.DataFrame({"Periodo": list(range(max(df_filtrado["Periodo"])+1, max(df_filtrado["Periodo"])+5))})
 previsao = modelo.predict(futuro)
-
-# =========================
-# REAL + PREVISÃO
-# =========================
-df_real = df_filtrado.copy()
-df_real["Tipo"] = "Real"
 
 df_prev = pd.DataFrame({
     "Periodo": futuro["Periodo"],
     "Score": previsao,
-    "Equipe": equipe,
     "Tipo": "Previsto"
 })
 
+df_real = df_filtrado.copy()
+df_real["Tipo"] = "Real"
+
 df_final = pd.concat([df_real, df_prev])
 
-# =========================
-# GRÁFICO PREVISÃO
-# =========================
-st.subheader("Real vs Previsão")
+st.subheader("Previsão")
 
 fig2 = px.line(df_final, x="Periodo", y="Score", color="Tipo", markers=True)
 st.plotly_chart(fig2, use_container_width=True)
 
 # =========================
-# COMPARAÇÃO GERAL
-# =========================
-st.subheader("Comparação entre Equipes")
-
-fig3 = px.line(df, x="Periodo", y="Score", color="Equipe")
-st.plotly_chart(fig3, use_container_width=True)
-
-# =========================
 # RANKING
 # =========================
-st.subheader("Ranking de Performance")
-
 ranking = df.groupby("Equipe")["Score"].mean().reset_index()
 ranking = ranking.sort_values(by="Score", ascending=False)
-ranking["Posição"] = range(1, len(ranking)+1)
 
-ranking = ranking[["Posição", "Equipe", "Score"]]
-
-st.dataframe(ranking, use_container_width=True)
+st.subheader("Ranking")
+st.dataframe(ranking)
 
 # =========================
 # OFENSOR
 # =========================
-st.subheader("Análise de Ofensor")
+st.subheader("Ofensor")
 
 if qualidade_media < volumetria_media:
-    st.error("Principal ofensor: QUALIDADE")
+    st.error("Ofensor: Qualidade")
 elif volumetria_media < qualidade_media:
-    st.warning("Principal ofensor: VOLUMETRIA")
+    st.warning("Ofensor: Volumetria")
 else:
-    st.success("Equilíbrio entre qualidade e volumetria")
+    st.success("Equilíbrio")
 
-# =========================
-# INSIGHTS
-# =========================
-st.subheader("Insights")
-
-if previsao[-1] < media:
-    st.error("Risco de queda futura")
-elif previsao[-1] > media:
-    st.success("Tendência de crescimento")
-else:
-    st.warning("Estabilidade")
 
 
