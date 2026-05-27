@@ -33,13 +33,6 @@ else:
         "Periodo": list(range(1,11))*4,
         "Equipe": ["Jurídico"]*10 + ["Telecom"]*10 + ["Fraude"]*10 + ["Suporte"]*10,
 
-        "Score": [
-            0.78,0.80,0.82,0.83,0.84,0.85,0.86,0.87,0.88,0.89,
-            0.70,0.72,0.75,0.76,0.77,0.78,0.79,0.80,0.81,0.82,
-            0.72,0.68,0.65,0.60,0.58,0.55,0.53,0.52,0.50,0.48,
-            0.80,0.85,0.88,0.90,0.92,0.94,0.95,0.96,0.97,0.98
-        ],
-
         "Qualidade": [
             0.80,0.82,0.83,0.84,0.85,0.86,0.87,0.88,0.89,0.90,
             0.72,0.74,0.76,0.78,0.79,0.80,0.81,0.82,0.83,0.84,
@@ -60,22 +53,27 @@ else:
 # =========================
 # VALIDAÇÃO
 # =========================
-colunas_necessarias = ["Periodo", "Equipe", "Score", "Qualidade", "Volumetria"]
+colunas_necessarias = ["Periodo", "Equipe", "Qualidade", "Volumetria"]
 
 if not all(col in df.columns for col in colunas_necessarias):
-    st.error("O Excel precisa ter: Periodo, Equipe, Score, Qualidade, Volumetria")
+    st.error("O Excel precisa ter: Periodo, Equipe, Qualidade, Volumetria")
     st.stop()
+
+# =========================
+# CÁLCULO AUTOMÁTICO DO SCORE
+# =========================
+df["Score"] = (df["Qualidade"] + df["Volumetria"]) / 2
 
 # =========================
 # EXPLICAÇÃO DO SCORE
 # =========================
 st.info("""
-O Score é calculado com base em dois fatores principais:
+O Score é calculado automaticamente com base em dois fatores:
 
-- Qualidade: nível de assertividade das entregas
-- Volumetria: volume realizado em relação ao esperado
+- Qualidade: nível de assertividade
+- Volumetria: volume entregue
 
-Essa combinação permite uma visão completa da performance.
+Score = (Qualidade + Volumetria) / 2
 """)
 
 # =========================
@@ -214,4 +212,5 @@ elif previsao[-1] > media:
     st.success("Tendência de crescimento")
 else:
     st.warning("Estabilidade")
+
 
